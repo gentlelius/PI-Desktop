@@ -166,15 +166,22 @@ test("nested process levels keep a subtle type and colour hierarchy", () => {
   assert.match(runName, /font-size:\s*var\(--text-sm\);/);
 });
 
-test("collapse rails keep the zero-padding gutter", () => {
-  const rail = stylesSource.match(
-    /\.turn-process-body > \.disclosure-collapse-rail,\s*\.process-activity-body > \.disclosure-collapse-rail \{([^}]*)\}/,
+test("collapse rails keep separate zero-padding gutter lanes", () => {
+  const turnRail = stylesSource.match(
+    /\.turn-process-body > \.disclosure-collapse-rail \{([^}]*)\}/,
   )?.[1];
-  assert.ok(rail);
-  assert.match(rail, /left:\s*-20px;/);
+  assert.ok(turnRail);
+  assert.match(turnRail, /left:\s*-32px;/);
+  assert.match(turnRail, /width:\s*14px;/);
+  const groupRail = stylesSource.match(
+    /\.process-activity-body > \.disclosure-collapse-rail \{([^}]*)\}/,
+  )?.[1];
+  assert.ok(groupRail);
+  assert.match(groupRail, /left:\s*-18px;/);
+  assert.match(groupRail, /width:\s*14px;/);
   const messageRow = stylesSource.match(/\.message-row \{([^}]*)\}/)?.[1];
   assert.ok(messageRow);
-  assert.match(messageRow, /overflow-clip-margin:\s*24px;/);
+  assert.match(messageRow, /overflow-clip-margin:\s*34px;/);
 });
 
 test("the header never echoes the item it is working on", () => {

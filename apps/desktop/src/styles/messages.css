@@ -13,10 +13,11 @@
   contain-intrinsic-size: auto 140px;
   /* Paint containment clips descendants to the padding box, which squared off
      the deliberate bleed of the disclosure row chrome: both disclosure headers
-     pull their hover fill 4px past the column edge, and the collapse rail sits
-     20px into that gutter. 24px covers the widest of them. .tool-activity-group
-     keeps its own clip for the subagent card chrome. */
-  overflow-clip-margin: 24px;
+     pull their hover fill 4px past the column edge, and the two collapse-rail
+     controls occupy separate 14px lanes in the gutter. 34px covers the outer
+     lane. .tool-activity-group keeps its own clip for the subagent card
+     chrome. */
+  overflow-clip-margin: 34px;
 }
 
 .message-row.user {
@@ -2829,11 +2830,20 @@
   outline-offset: -2px;
 }
 
-/* These bodies carry no content indent, so the rail keeps its own gutter and
-   stops at the header fill. Tool-row detail rails keep their tighter inset. */
-.turn-process-body > .disclosure-collapse-rail,
+/* These bodies carry no content indent, so each rail keeps its own gutter lane
+   and stops at the header fill. The turn's control is the outer lane and the
+   nested group's is the inner lane: expanding a group never puts two hit
+   targets on the same pixels. Tool-row detail rails keep their tighter inset. */
+.turn-process-body > .disclosure-collapse-rail {
+  left: -32px;
+  width: 14px;
+  min-width: 14px;
+}
+
 .process-activity-body > .disclosure-collapse-rail {
-  left: -20px;
+  left: -18px;
+  width: 14px;
+  min-width: 14px;
 }
 
 /* Keep the visible bar next to the content while the hit target extends into

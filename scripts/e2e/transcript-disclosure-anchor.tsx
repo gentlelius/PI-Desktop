@@ -82,7 +82,17 @@ async function settle() {
  * viewport. Only the app's stylesheet is left out, so the geometry comes from
  * inline sizes and the real components' intrinsic height.
  */
-function TranscriptFixture({ messages, process = false, isActive = false }: { messages: UiMessage[]; process?: boolean; isActive?: boolean }) {
+function TranscriptFixture({
+  messages,
+  process = false,
+  isActive = false,
+  sessionId = "fixture",
+}: {
+  messages: UiMessage[];
+  process?: boolean;
+  isActive?: boolean;
+  sessionId?: string;
+}) {
   const entry = process ? buildTranscriptEntries(messages).entries.find((item) => item.kind === "assistant-turn") : undefined;
   const {
     scrollRef,
@@ -91,7 +101,7 @@ function TranscriptFixture({ messages, process = false, isActive = false }: { me
     handleScroll,
     disclosureAnchorNotifier,
   } = useTranscriptScroll({
-    sessionId: "fixture",
+    sessionId,
     messages,
     hasMoreBefore: false,
     isRunning: false,
@@ -282,7 +292,12 @@ globalThis.transcriptDisclosureProbe = async () => {
     const renderProcess = (isActive: boolean) => flushSync(() =>
       processRoot.render(
         <I18nextProvider i18n={i18n}>
-          <TranscriptFixture process isActive={isActive} messages={processMessages} />
+          <TranscriptFixture
+            process
+            isActive={isActive}
+            messages={processMessages}
+            sessionId="process-fixture"
+          />
         </I18nextProvider>,
       ),
     );
@@ -296,9 +311,17 @@ globalThis.transcriptDisclosureProbe = async () => {
       processTitle.getAttribute("aria-expanded") === "true",
       "an active detailed process should start open",
     );
+    assert(
+      Math.abs(processBefore.distanceFromBottom) < 1,
+      `the process fixture did not start pinned to the bottom: ${JSON.stringify(processBefore)}`,
+    );
     renderProcess(false);
     await settle();
     const processCollapsed = geometry(processScroller, processTitle);
+    assert(
+      processCollapsed.titleTop >= 0 && processCollapsed.titleTop < 600,
+      `the process title is not on screen for the expansion test: ${JSON.stringify(processCollapsed)}`,
+    );
     assert(
       processTitle.getAttribute("aria-expanded") === "false",
       `an untouched process should collapse when its turn completes (expanded=${processTitle.getAttribute("aria-expanded")}, active=${processContainer.querySelector(".turn-process")?.classList.contains("active") ?? false}, bodyHidden=${processContainer.querySelector<HTMLElement>(".turn-process-body")?.hidden ?? true}, focusInside=${processContainer.querySelector(".turn-process-body")?.contains(document.activeElement) ?? false}, selected=${window.getSelection()?.isCollapsed === false})`,
@@ -322,7 +345,7 @@ globalThis.transcriptDisclosureProbe = async () => {
     // anchor has to compensate; the automatic collapse above may legitimately clamp.
     assert(
       Math.abs(processExpanded.titleTop - processCollapsed.titleTop) < 2,
-      "process expansion moved its title",
+      `process expansion moved its title by ${processExpanded.titleTop - processCollapsed.titleTop}px: ${JSON.stringify({ processBefore, processCollapsed, processExpanded })}`,
     );
     renderProcess(true);
     renderProcess(false);

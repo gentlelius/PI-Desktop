@@ -76,6 +76,7 @@ export async function turnProcessProbe() {
     onUncaughtError: (error) => errors.push(error),
   });
   const notes: string[] = [];
+  const metrics: Record<string, unknown> = {};
   const check = (value: unknown, name: string) => {
     assert(value, name);
     notes.push(name);
@@ -128,6 +129,17 @@ export async function turnProcessProbe() {
       rect.left + rect.width / 2,
       rect.top + rect.height / 2,
     );
+  };
+  const rectOf = (element: Element | null) => {
+    if (!element) return null;
+    const rect = element.getBoundingClientRect();
+    return {
+      left: rect.left,
+      right: rect.right,
+      width: rect.width,
+      top: rect.top,
+      bottom: rect.bottom,
+    };
   };
   const fontSize = (element: Element | null) =>
     element ? Number.parseFloat(getComputedStyle(element).fontSize) : NaN;
@@ -283,6 +295,13 @@ export async function turnProcessProbe() {
       nestedRail !== null && railHit(nestedRail) === nestedRail,
       "the nested group collapse rail owns its gutter hit target",
     );
+    metrics.desktop = {
+      icons: [leftOf(topIcon), leftOf(nestedIcon), leftOf(bashIcon)],
+      labels: [leftOf(topLabel), leftOf(nestedLabel), leftOf(bashLabel)],
+      headers: [leftOf(topHeader), leftOf(nestedHeader), leftOf(bashHead)],
+      turnRail: rectOf(topRail),
+      groupRail: rectOf(nestedRail),
+    };
     container.style.width = "420px";
     check(
       nearLeft(leftOf(topIcon), leftOf(nestedIcon)) &&
@@ -294,6 +313,11 @@ export async function turnProcessProbe() {
         nestedRail !== null && railHit(nestedRail) === nestedRail,
       "both collapse rails stay usable in a narrow transcript",
     );
+    metrics.narrow = {
+      icons: [leftOf(topIcon), leftOf(nestedIcon), leftOf(bashIcon)],
+      turnRail: rectOf(topRail),
+      groupRail: rectOf(nestedRail),
+    };
     container.style.width = "800px";
 
     check(
@@ -658,7 +682,7 @@ export async function turnProcessProbe() {
       "the Show thinking row saves the boolean preference",
     );
 
-    return { ok: true, checks: notes };
+    return { ok: true, checks: notes, metrics };
   } finally {
     flushSync(() => root.unmount());
     useAppStore.setState({ settings: initialSettings });
