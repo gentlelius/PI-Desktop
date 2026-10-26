@@ -9,6 +9,8 @@ import {
 import { api } from "../../lib/api";
 import { useAppStore } from "../../stores/app-store";
 import { useHostCollection } from "../../hooks/use-host-collection";
+import { useRowBusy } from "../../hooks/use-row-busy";
+import { mcpOAuthErrorTranslationKey } from "../../lib/mcp-oauth-error";
 import {
   AgentCapabilityPage,
   AgentProjectPicker,
@@ -113,7 +115,7 @@ export function AgentMcpPage() {
   const [filter, setFilter] = useState<CapabilityFilter>("all");
   const [importOpen, setImportOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const rowBusy = useRowBusy();
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [editor, setEditor] = useState<McpEditorState | null>(null);
   const [saving, setSaving] = useState(false);
@@ -208,9 +210,8 @@ export function AgentMcpPage() {
 
   const toggle = async (server: McpServerRecord, level: AgentCapabilityLevel) => {
     const key = rowKey(level, server.id);
-    if (busyId) return;
+    if (!rowBusy.begin(key)) return;
     const next = !server.enabled;
-    setBusyId(key);
     // Flip locally first: the host is the authority, but a round-trip of latency
     // on a switch reads as a broken control.
     patchRow(level, server.id, { enabled: next });
@@ -226,7 +227,7 @@ export function AgentMcpPage() {
       patchRow(level, server.id, { enabled: server.enabled });
       showToast(error instanceof Error ? error.message : String(error), { variant: "error" });
     } finally {
-      setBusyId(null);
+      rowBusy.end(key);
     }
   };
 
@@ -295,7 +296,11 @@ export function AgentMcpPage() {
         });
         cleanup();
       } else if (event.kind === "error") {
-        showToast(event.message || t("extensions.mcp.authFailed"), { variant: "error" });
+        const errorKey = mcpOAuthErrorTranslationKey(event.errorCode);
+        showToast(
+          (errorKey && t(errorKey)) || event.message || t("extensions.mcp.authFailed"),
+          { variant: "error" },
+        );
         cleanup();
       } else if (event.kind === "cancelled") {
         cleanup();
@@ -324,7 +329,7 @@ export function AgentMcpPage() {
 
   const remove = async (server: McpServerRecord, level: AgentCapabilityLevel) => {
     const key = rowKey(level, server.id);
-    setBusyId(key);
+    if (!rowBusy.begin(key)) return;
     try {
       await api.removeMcpServer(server.id, levelQuery(level));
       await load();
@@ -334,7 +339,7 @@ export function AgentMcpPage() {
     } catch (error) {
       showToast(error instanceof Error ? error.message : String(error), { variant: "error" });
     } finally {
-      setBusyId(null);
+      rowBusy.end(key);
       setArmed(null);
     }
   };
@@ -392,7 +397,7 @@ export function AgentMcpPage() {
       return;
     }
     const key = rowKey(level, server.id);
-    setBusyId(key);
+    if (!rowBusy.begin(key)) return;
     try {
       const result = await api.transferMcpServer({
         id: server.id,
@@ -415,7 +420,7 @@ export function AgentMcpPage() {
     } catch (error) {
       showToast(error instanceof Error ? error.message : String(error), { variant: "error" });
     } finally {
-      setBusyId(null);
+      rowBusy.end(key);
     }
   };
 
@@ -423,7 +428,7 @@ export function AgentMcpPage() {
     const key = rowKey(level, server.id);
     const name = server.label || server.id;
     const status = statusFor(statuses, server);
-    const busy = busyId === key;
+    const busy = rowBusy.isBusy(key);
     const testing = testingId === server.id;
     const authorizing = authorizingId === server.id;
     const isArmed = armed === key;

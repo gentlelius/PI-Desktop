@@ -418,12 +418,22 @@ export type SessionHistoryReadOptions = {
   contentLimit?: number;
 };
 
+type TranscriptDisplayMode = NonNullable<AppSettings["transcriptDisplayMode"]>;
+
+function isTranscriptDisplayModeValue(value: unknown): value is TranscriptDisplayMode {
+  return value === "flat" || value === "command-first" || value === "fully-folded";
+}
+
 export function normalizeSettings(settings: AppSettings): AppSettings {
   return {
     ...settings,
     sidebarRunningIndicators: settings.sidebarRunningIndicators !== false,
     sidebarRunningBadge: settings.sidebarRunningBadge !== false,
     sidebarRunningRail: settings.sidebarRunningRail === true,
+    keepCommandsExpanded: settings.keepCommandsExpanded !== false,
+    transcriptDisplayMode: isTranscriptDisplayModeValue(settings.transcriptDisplayMode)
+      ? settings.transcriptDisplayMode
+      : "fully-folded",
     defaultMode: normalizeMode((settings as { defaultMode?: unknown }).defaultMode),
     infiniteProviderRetry:
       (settings as { infiniteProviderRetry?: unknown }).infiniteProviderRetry === true,
@@ -462,6 +472,14 @@ export function validateSettingsWrite(settings: AppSettings): AppSettings {
     typeof settings.showThinking !== "boolean"
   ) {
     throw Object.assign(new Error("showThinking is invalid"), {
+      errorCode: "INVALID_PARAMS",
+    });
+  }
+  if (
+    Object.prototype.hasOwnProperty.call(settings, "transcriptDisplayMode") &&
+    !isTranscriptDisplayModeValue(settings.transcriptDisplayMode)
+  ) {
+    throw Object.assign(new Error("transcriptDisplayMode is invalid"), {
       errorCode: "INVALID_PARAMS",
     });
   }
@@ -539,12 +557,21 @@ export function validateSettingsWrite(settings: AppSettings): AppSettings {
       errorCode: "INVALID_PARAMS",
     });
   }
+  if (
+    Object.prototype.hasOwnProperty.call(value, "inlineVisualizations") &&
+    typeof value.inlineVisualizations !== "boolean"
+  ) {
+    throw Object.assign(new Error("inlineVisualizations is invalid"), {
+      errorCode: "INVALID_PARAMS",
+    });
+  }
   for (const key of [
     "sidebarRunningIndicators",
     "sidebarRunningBadge",
     "sidebarRunningRail",
     "sidebarSessionTime",
     "macosWindowTranslucency",
+    "keepCommandsExpanded",
   ] as const) {
     if (
       Object.prototype.hasOwnProperty.call(value, key) &&
@@ -1579,6 +1606,8 @@ export const api = {
     invoke(IPC.invoke.browserOpenExternal, url ? { url } : {}),
   browserGetState: () =>
     invoke<BrowserState | null>(IPC.invoke.browserGetState),
+  browserGetPages: (sessionId: string) =>
+    invoke<BrowserState[]>(IPC.invoke.browserGetPages, { sessionId }),
   fsList: (path?: string, sessionId?: string) =>
     invoke<{ entries: FsEntry[] }>(IPC.invoke.fsList, { path: path ?? "", ...(sessionId ? { sessionId } : {}) }),
   fsRead: (path: string, mimeType?: string, sessionId?: string) =>
@@ -1597,6 +1626,8 @@ export const api = {
   fsOpen: (path: string, mimeType?: string, sessionId?: string) =>
     invoke(IPC.invoke.fsOpen, { path, mimeType, ...(sessionId ? { sessionId } : {}) }),
   fsIndex: (sessionId?: string) => invoke<FsIndexResult>(IPC.invoke.fsIndex, { ...(sessionId ? { sessionId } : {}) }),
+  fsSearch: (sessionId: string | undefined, query: string) =>
+    invoke<FsIndexResult>(IPC.invoke.fsSearch, { ...(sessionId ? { sessionId } : {}), query }),
   /**
    * Complete a file reference from chat text to a real file (D320 follow-up).
    * The main process owns the root order — project, session scratch,
@@ -1781,7 +1812,7 @@ export const api = {
   },
   /**
    * A plugin offered one line for the composer, or the main process ordered
-   * whatever is on screen dropped (`pi.composer.suggest`, ADR 0332).
+   * whatever is on screen dropped (`pi.composer.suggest`, ADR 0333).
    *
    * The shell answers every offer over `pluginComposerSuggestionResult`, because
    * only the renderer knows whether the draft can take it. A malformed message

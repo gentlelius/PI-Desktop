@@ -31,8 +31,7 @@ import {
 import { ComposerAutocomplete } from "./ComposerAutocomplete";
 import { AskToolCard } from "./AskToolCard";
 import { PlanApprovalBar } from "./PlanApprovalBar";
-import { TodoDock } from "./TodoDock";
-import { BackgroundTasksBar } from "./BackgroundTasksBar";
+import { TaskDock } from "./TaskDock";
 import {
   COMPOSER_MAX_VISIBLE_ROWS,
   COMPOSER_MIN_HEIGHT_PX,
@@ -497,7 +496,7 @@ export function Composer({
   // Plugin draft and attachment actions reach this composer while it takes input.
   usePluginComposerBridge({ ...draft, inputBlocked, enabled: localToolsAllowed });
   // A plugin may have offered one line for this empty draft; it shows in the
-  // placeholder layer and `Tab` takes it (ADR 0332).
+  // placeholder layer and `Tab` takes it (ADR 0333).
   const suggestion = useComposerSuggestion();
 
   // Keep the transcript's bottom reserve in sync with the composer's real
@@ -531,8 +530,10 @@ export function Composer({
       data-composer-dock={variant}
     >
       <div className="composer-stack">
-        {activeSessionId && localToolsAllowed ? <TodoDock sessionId={activeSessionId} /> : null}
-        <BackgroundTasksBar />
+        {/* One container for todo and background tasks: the tabs live in the
+            header, so the gate now covers both the way it already covered the
+            todo dock. */}
+        {activeSessionId && localToolsAllowed ? <TaskDock sessionId={activeSessionId} /> : null}
         {planCheckpoint?.status === "pending" ? (
           <PlanApprovalBar proposal={planCheckpoint} />
         ) : null}
