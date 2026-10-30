@@ -7681,7 +7681,13 @@ must keep splitting are covered by `markdown-blocks.test.mjs`.
      and switch between light and dark themes.
   3. Copy SVG and export SVG; parse the clipboard text and downloaded file
      as standalone SVG, verify the diagram labels, explicit dimensions and
-     resolved UI font, then repeat in a README preview. Deny clipboard access
+     resolved UI font, then repeat in a README preview. Give the preview a
+     different font from the document root and themed node colors; open
+     exported SVG in an isolated SVG document and compare computed fonts and
+     colors. In SVG export fixtures, verify app CSS variables, per-node
+     overrides, nested fallbacks, inline styles and presentation attributes,
+     export from source
+     view, and that the live SVG remains unchanged. Deny clipboard access
      and force download setup failure; verify localized error feedback.
      Repeat while rendering and with invalid input: SVG actions stay disabled.
      Switch diagrams/themes and confirm subsequent exports use the new SVG.

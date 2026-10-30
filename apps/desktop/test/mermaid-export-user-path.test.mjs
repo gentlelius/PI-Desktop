@@ -21,7 +21,7 @@ test("Mermaid preview copies standalone SVG and downloads the same diagram", {
       define: { "import.meta.env.DEV": "false", "process.env.NODE_ENV": '"production"' },
       loader: { ".woff2": "file", ".woff": "file", ".ttf": "file" },
     });
-    await writeFile(join(temp, "index.html"), '<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'self\'; style-src \'self\' \'unsafe-inline\'"><link rel="stylesheet" href="renderer.css"><div id="root"></div><script type="module" src="renderer.js"></script>');
+    await writeFile(join(temp, "index.html"), '<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'self\'; style-src \'self\' \'unsafe-inline\'; frame-src blob:"><link rel="stylesheet" href="renderer.css"><div id="root"></div><script type="module" src="renderer.js"></script>');
     const env = { ...process.env, PI_MERMAID_TEST_DIR: temp };
     delete env.ELECTRON_RUN_AS_NODE;
     const child = spawn(resolveElectronBinary(root).electronBinary,

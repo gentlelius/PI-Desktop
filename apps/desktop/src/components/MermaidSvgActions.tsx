@@ -1,16 +1,25 @@
+import type { RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import { downloadMermaidSvg, standaloneMermaidSvg } from "../lib/mermaid-export";
 import { useAppStore } from "../stores/app-store";
 import { IconDownload, IconImage } from "./icons";
 import { TooltipButton } from "./ui";
 
-export function MermaidSvgActions({ svg }: { svg: string }) {
+export function MermaidSvgActions({ svg, previewRef }: {
+  svg: string;
+  previewRef: RefObject<HTMLDivElement | null>;
+}) {
   const { t } = useTranslation();
   const showToast = useAppStore((state) => state.showToast);
+  const exportSvg = () => {
+    const preview = previewRef.current?.firstElementChild;
+    if (!(preview instanceof SVGSVGElement)) throw new Error("Mermaid preview unavailable");
+    return standaloneMermaidSvg(svg, preview);
+  };
   const copy = async () => {
     if (!svg) return;
     try {
-      await navigator.clipboard.writeText(standaloneMermaidSvg(svg));
+      await navigator.clipboard.writeText(exportSvg());
       showToast(t("chat.diagramSvgCopied"), { variant: "success" });
     } catch {
       showToast(t("chat.copyFailed"), { variant: "error" });
@@ -19,7 +28,7 @@ export function MermaidSvgActions({ svg }: { svg: string }) {
   const download = () => {
     if (!svg) return;
     try {
-      downloadMermaidSvg(standaloneMermaidSvg(svg));
+      downloadMermaidSvg(exportSvg());
     } catch {
       showToast(t("chat.diagramSvgExportFailed"), { variant: "error" });
     }

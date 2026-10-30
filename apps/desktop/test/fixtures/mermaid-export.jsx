@@ -8,6 +8,11 @@ import { FilesTab } from "../../src/components/workpanel/FilesTab";
 import { Markdown } from "../../src/components/Markdown";
 import { useAppStore } from "../../src/stores/app-store";
 import { standaloneMermaidSvg } from "../../src/lib/mermaid-export";
+import "../../src/styles/prose.css";
+
+const previewStyle = {
+  "--font-sans": '"Courier New", monospace',
+};
 
 const i18n = createInstance();
 await i18n.init({ lng: "en", resources: Object.fromEntries(
@@ -29,13 +34,13 @@ window.mermaidFixture = {
     document.documentElement.dataset.theme = "light";
     document.documentElement.style.setProperty("--font-sans", '\"Arial\", sans-serif');
     useAppStore.setState({ workspace: { path: "/fixture", name: "fixture" }, workPanelFileRequest: { seq: 1, path: "README.md" } });
-    flushSync(() => root.render(<I18nextProvider i18n={i18n}><FilesTab /></I18nextProvider>));
+    flushSync(() => root.render(<I18nextProvider i18n={i18n}><section style={previewStyle}><FilesTab /></section></I18nextProvider>));
   },
   async render(source, locale = "en", theme = "light") {
     document.documentElement.dataset.theme = theme;
     document.documentElement.style.setProperty("--font-sans", '"Arial", sans-serif');
     await i18n.changeLanguage(locale);
-    flushSync(() => root.render(<I18nextProvider i18n={i18n}><Markdown source={source} /></I18nextProvider>));
+    flushSync(() => root.render(<I18nextProvider i18n={i18n}><section style={previewStyle}><Markdown source={source} /></section></I18nextProvider>));
   },
   toast: () => useAppStore.getState().toasts.at(-1),
 };
